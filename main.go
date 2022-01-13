@@ -98,26 +98,74 @@ func newBranch(branchName string) {
 }
 
 func stageChanges() {
-	ignoredFiles := []string{".git", ".gitignore", "node_modules", ""}
+	ignoredFiles := []string{".git", ".gitignore", "node_modules"}
 
 	files, err := os.ReadDir(getCWD())
 	check(err)
 	for _, dirEntry := range files {
 		// Copy file to the pluginDir if the filename is not in the ignoredFiles array
 		if !contains(ignoredFiles, dirEntry.Name()) {
-			var cmd *exec.Cmd
+			var cp *exec.Cmd
 
 			if dirEntry.IsDir() {
-				// TODO: Need to delete all the dirs in getThePluginDir() first and then copy the dir over
-				cmd = exec.Command("cp", "-R", dirEntry.Name(), path.Join(getThePluginDir(), dirEntry.Name()))
+				// Stupid macos doesn't suppert the -T flag, so we need to delete the folder first.
+				os.RemoveAll(path.Join(getThePluginDir(), dirEntry.Name()))
+
+				// Make the cp command
+				cp = exec.Command(
+					"cp",
+					"-R",
+					dirEntry.Name(),
+					path.Join(
+						getThePluginDir(),
+						dirEntry.Name(),
+					),
+				)
 			} else {
-				cmd = exec.Command("cp", dirEntry.Name(), path.Join(getThePluginDir(), dirEntry.Name()))
+				// Make the cp command
+				cp = exec.Command(
+					"cp",
+					dirEntry.Name(),
+					path.Join(getThePluginDir(), dirEntry.Name()),
+				)
 			}
 
-			cmd.Stdout = os.Stdout
-			cmd.Stderr = os.Stderr
+			// Define outputs
+			cp.Stdout = os.Stdout
+			cp.Stderr = os.Stderr
 
-			cmd.Run()
+			// Run the command
+			cp.Run()
+		}
+	}
+
+	/**
+	 * When directories are deleted in the top level, we need to delete them
+	 * from the pluginDir as well.
+	 */
+
+	// Open the repo we are in.
+	repo, err := git.PlainOpen(getCWD())
+	wt, err := repo.Worktree()
+
+	// Get the status of the repo
+	status, err := wt.Status()
+	str := status.String()
+	stats := strings.Split(str, "\n")
+
+	// Get the deleted files and delete them from the pluginDir
+	for _, file := range stats {
+		if len(file) > 0 {
+			isDeleted := strings.TrimSpace(file)[0:1] == "D"
+			if isDeleted {
+				fileName := strings.TrimSpace(file)[2:]
+				os.RemoveAll(
+					path.Join(
+						getThePluginDir(),
+						strings.Split(fileName, "/")[0],
+					),
+				)
+			}
 		}
 	}
 
@@ -132,7 +180,9 @@ func updateVersionNumbers(level string) {
 	}
 
 	// Read the package.json file
-	packageJSONBytes, err := os.ReadFile(path.Join(getThePluginDir(), "package.json"))
+	packageJSONBytes, err := os.ReadFile(
+		path.Join(getThePluginDir(), "package.json"),
+	)
 	check(err)
 
 	// Unmarshal the json into a map
@@ -176,7 +226,11 @@ func updateVersionNumbers(level string) {
 	)
 
 	// Save the new version number to the package.json file
-	os.WriteFile(path.Join(getThePluginDir(), "package.json"), []byte(fileString), 0644)
+	os.WriteFile(
+		path.Join(getThePluginDir(), "package.json"),
+		[]byte(fileString),
+		0644,
+	)
 }
 
 func main() {
