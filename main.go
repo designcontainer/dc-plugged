@@ -96,9 +96,22 @@ func newBranch(branchName string) {
 }
 
 func stageChanges() {
-	ignoredFiles := []string{".git", ".gitignore", "node_modules"}
+	ignoredFiles := []string{".git", ".gitignore", "node_modules", ".env"}
 
-	files, err := os.ReadDir(getCWD())
+	/**
+	 * Delete all files in the plugin directory that are not in the ignoredFiles list
+	 */
+	files, err := os.ReadDir(getThePluginDir())
+	for _, dirEntry := range files {
+		if !contains(ignoredFiles, dirEntry.Name()) {
+			os.RemoveAll(path.Join(getThePluginDir(), dirEntry.Name()))
+		}
+	}
+
+	/**
+	 * Copy over files from CWD to the plugin directory
+	 */
+	files, err = os.ReadDir(getCWD())
 	check(err)
 	for _, dirEntry := range files {
 		// Copy file to the pluginDir if the filename is not in the ignoredFiles array
@@ -106,21 +119,13 @@ func stageChanges() {
 			var cp *exec.Cmd
 
 			if dirEntry.IsDir() {
-				// Stupid macos doesn't suppert the -T flag, so we need to delete the folder first.
-				os.RemoveAll(path.Join(getThePluginDir(), dirEntry.Name()))
-
-				// Make the cp command
 				cp = exec.Command(
 					"cp",
 					"-R",
 					dirEntry.Name(),
-					path.Join(
-						getThePluginDir(),
-						dirEntry.Name(),
-					),
+					path.Join(getThePluginDir(), dirEntry.Name()),
 				)
 			} else {
-				// Make the cp command
 				cp = exec.Command(
 					"cp",
 					dirEntry.Name(),
@@ -134,51 +139,6 @@ func stageChanges() {
 
 			// Run the command
 			cp.Run()
-		}
-	}
-
-	/**
-	 * When directories are deleted in the top level, we need to delete them
-	 * from the pluginDir as well.
-	 */
-
-	// Open the site repo
-	gitDir := strings.Split(getCWD(), "/")
-	if len(gitDir) <= 0 {
-		fmt.Println("Could not get your CWD.")
-		return
-	}
-	// gitDirString is the top level directory the site repo (Where `.git/` is)
-	gitDirStr := "/" + path.Join(gitDir[:len(gitDir)-3]...) + "/"
-	repo, err := git.PlainOpen(gitDirStr)
-	wt, err := repo.Worktree()
-
-	// Get the status of the repo
-	status, err := wt.Status()
-	str := status.String()
-	stats := strings.Split(str, "\n")
-
-	// Get the files deleted from the plugin and delete them from the pluginDir
-	for _, file := range stats {
-		if len(file) > 0 {
-			// Check if the file is deleted
-			isDeleted := strings.TrimSpace(file)[0:1] == "D"
-			// Check if the file is in the plugin folder
-			isPluginFile := strings.Contains(
-				file,
-				path.Join("plugins", path.Base(getCWD())),
-			)
-			if isDeleted && isPluginFile {
-				// Get the filename and remove the `D ` in the beginning
-				fileName := path.Base(strings.TrimSpace(file)[2:])
-				// Remove it
-				os.RemoveAll(
-					path.Join(
-						getThePluginDir(),
-						strings.Split(fileName, "/")[0],
-					),
-				)
-			}
 		}
 	}
 
