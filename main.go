@@ -32,8 +32,10 @@ func getHomeDir() (homeDir string) {
 	return
 }
 
-var pluginDir string = path.Join(getHomeDir(), "plugins")
+// The dir where all plugin repos are located.
+var pluginsDir string = path.Join(getHomeDir(), "plugins")
 
+// Returns the current working directory.
 func getCWD() (dir string) {
 	dir, err := os.Getwd()
 	check(err)
@@ -41,13 +43,15 @@ func getCWD() (dir string) {
 	return
 }
 
+// Returns the plugin repo path based on CWD.
 func getThePluginDir() (dir string) {
 	dir = path.Base(getCWD())
-	dir = path.Join(pluginDir, dir)
+	dir = path.Join(pluginsDir, dir)
 
 	return
 }
 
+// Cheks if `e` is in `s`
 func contains(s []string, e string) bool {
 	for _, a := range s {
 		if a == e {
@@ -61,7 +65,8 @@ func contains(s []string, e string) bool {
  * Action functions
  */
 
-// DONE
+// Creates a new branch in `getThePluginDir()` with `branchName` as the name.
+// Also checks out that branch.
 func newBranch(branchName string) {
 	// Open the repo so we can make changes to it
 	repo, err := git.PlainOpen(getThePluginDir())
@@ -74,10 +79,12 @@ func newBranch(branchName string) {
 	// Check if repo is dirty
 	workTreeStatus, err := workTree.Status()
 	if !workTreeStatus.IsClean() {
-		fmt.Println("Repo is dirty, please commit or stash your changes before creating a new branch.")
+		fmt.Printf("%s is dirty.\n", getThePluginDir())
+		fmt.Println("Please commit or stash your changes.")
 		return
 	}
 
+	// Create a branch and store the new branch
 	// Bash equivalent: git branch test
 	refName := plumbing.NewBranchReferenceName(branchName)
 	headRef, err := repo.Head()
@@ -91,16 +98,18 @@ func newBranch(branchName string) {
 	check(err)
 
 	if err == nil {
-		fmt.Printf("Created branch `%s` in `%s`\n", branchName, getThePluginDir())
+		fmt.Printf("Created branch %s in %s\n", branchName, getThePluginDir())
 	}
 }
 
+// Copies over the changes from the plugin dir in site repo to the plugin repo
+// First it deletes all files in the plugin repo.
+// Then it copies the files over using `cp`.
 func stageChanges() {
+	// Heres a list of ignored files and dirs we don't want to mess with.
 	ignoredFiles := []string{".git", ".gitignore", "node_modules", ".env"}
 
-	/**
-	 * Delete all files in the plugin directory that are not in the ignoredFiles list
-	 */
+	// Delete all files in the plugin repo that are not in the ignored list
 	files, err := os.ReadDir(getThePluginDir())
 	for _, dirEntry := range files {
 		if !contains(ignoredFiles, dirEntry.Name()) {
@@ -108,20 +117,18 @@ func stageChanges() {
 		}
 	}
 
-	/**
-	 * Copy over files from CWD to the plugin directory
-	 */
+	// Copy over files from CWD to the plugin directory
 	files, err = os.ReadDir(getCWD())
 	check(err)
 	for _, dirEntry := range files {
-		// Copy file to the pluginDir if the filename is not in the ignoredFiles array
 		if !contains(ignoredFiles, dirEntry.Name()) {
 			var cp *exec.Cmd
 
+			// Create the `cp` command based on if the dirEntry is a dir or not
 			if dirEntry.IsDir() {
 				cp = exec.Command(
 					"cp",
-					"-R",
+					"-R", // Recursive flag, so we can copy dirs as well
 					dirEntry.Name(),
 					path.Join(getThePluginDir(), dirEntry.Name()),
 				)
@@ -142,26 +149,28 @@ func stageChanges() {
 		}
 	}
 
-	fmt.Println("Staged changes. They are ready to be commited in " + getThePluginDir())
+	fmt.Printf(
+		"Staged changes. They are ready to be commited in %s\n",
+		getThePluginDir(),
+	)
 }
 
+// Updates the plugin version number based on input level
+// `level` can be: major, minor or patch
+// It only changes version number in package.json by default.
+// `files` is a comma seperated string of other files to change version in.
 func updateVersionNumbers(level string, files string) {
-	// Check if level is valid
-	if level != "major" && level != "minor" && level != "patch" {
-		fmt.Println("Invalid level, please use one of the following: major, minor, patch.")
-		return
-	}
-
 	// Read the package.json file
 	packageJSONBytes, err := os.ReadFile("package.json")
 	check(err)
 
-	// Unmarshal the json into a map
+	// Unmarshal/parse the json into a map
 	var packageJSONMap map[string]interface{}
 	json.Unmarshal(packageJSONBytes, &packageJSONMap)
+	oldVersion := packageJSONMap["version"].(string)
 
 	// Increment the version number according to the level
-	version := strings.Split(packageJSONMap["version"].(string), ".")
+	newVersion := strings.Split(packageJSONMap["version"].(string), ".")
 	var num int
 
 	// Get the index of the version number to increment
@@ -173,75 +182,81 @@ func updateVersionNumbers(level string, files string) {
 	index := table[level]
 
 	// Update the version number
-	num, err = strconv.Atoi(version[index])
-	version[index] = fmt.Sprint(num + 1)
-
+	num, err = strconv.Atoi(newVersion[index])
 	check(err)
+	newVersion[index] = fmt.Sprint(num + 1)
 
-	// Upgrade notice
+	newVersionStr := strings.Join(newVersion, ".")
+
 	fmt.Printf(
-		"Updated verson from %s to %s.\n",
+		"Updated version from %s to %s.\n",
 		packageJSONMap["version"],
-		strings.Join(version, "."),
+		strings.Join(newVersion, "."),
 	)
+
+	// NOTICE:
+	// We str replace the version number instead of stringifying our parsed
+	// json, and writing that to the file, to avoid messing with formatting.
 
 	// Replace the version number in the package.json file
 	fileString := strings.Replace(
-		string(packageJSONBytes),
-		packageJSONMap["version"].(string),
-		strings.Join( // Join them back to a string
-			version,
-			".",
-		),
-		1, // Only replace the first instance
+		string(packageJSONBytes), // Replace target
+		oldVersion,               // Search for previous version
+		newVersionStr,            // Replace with new version
+		1,                        // Only replace the first instance
 	)
 
-	// Save the new version number to the package.json file
 	// Write to both the site repo and the plugin repo
 	os.WriteFile("package.json", []byte(fileString), 0644)
-	os.WriteFile(path.Join(getThePluginDir(), "package.json"), []byte(fileString), 0644)
+	os.WriteFile(
+		path.Join(getThePluginDir(), "package.json"),
+		[]byte(fileString),
+		0644,
+	)
 
+	// Loop trough the extra files and replace the version.
 	fileList := strings.Split(files, ",")
-
 	for _, file := range fileList {
 		// Read the file
 		fileBytes, err := os.ReadFile(file)
 		check(err)
 
 		fileString := strings.Replace(
-			string(fileBytes),
-			packageJSONMap["version"].(string),
-			strings.Join( // Join them back to a string
-				version,
-				".",
-			),
-			1, // Only replace the first instance
+			string(fileBytes), // Replace target
+			oldVersion,        // Search for previous version
+			newVersionStr,     // Replace with new version
+			1,                 // Only replace the first instance
 		)
 
 		// Write to both the site repo and the plugin repo
 		os.WriteFile(path.Join(file), []byte(fileString), 0644)
-		os.WriteFile(path.Join(getThePluginDir(), file), []byte(fileString), 0644)
+		os.WriteFile(
+			path.Join(getThePluginDir(), file),
+			[]byte(fileString),
+			0644,
+		)
 	}
 }
 
 func main() {
+	// Define destination for --files flag in update-version command
 	var files string
 
 	app := &cli.App{
 		Name:    "DC-Plugged",
-		Usage:   "Make it easier to work with plugins in site repos",
-		Version: "0.1.0",
+		Usage:   "Automate boring tasks related to working with plugins",
+		Version: "1.0.0",
 		Commands: []*cli.Command{
 			{
-				Name:        "new-branch",
-				Aliases:     []string{"nb"},
-				ArgsUsage:   "<branchName>",
-				Description: "Create a new branch in the plugin you are currently editing.",
+				Name:      "new-branch",
+				Aliases:   []string{"nb"},
+				Usage:     "Creates a new branch in the plugin repo",
+				ArgsUsage: "[new branch name]",
 				Action: func(c *cli.Context) (err error) {
 					branchName := c.Args().First()
-
+					// Check if branchName is valid
 					if branchName == "" {
-						fmt.Println("Please provide a branch name.")
+						fmt.Println("Please provide a branch name")
 						return
 					}
 
@@ -250,31 +265,37 @@ func main() {
 				},
 			},
 			{
-				Name:        "stage-changes",
-				Aliases:     []string{"sc"},
-				Description: "Add all your changes to the plugin in the site repo to the plugin repo",
+				Name:    "stage-changes",
+				Aliases: []string{"sc"},
+				Usage:   "Copy all your change to the plugin repo",
 				Action: func(c *cli.Context) (err error) {
 					stageChanges()
 					return
 				},
 			},
 			{
-				Name:        "update-version",
-				Aliases:     []string{"uv"},
-				Usage:       "<level [major|minor|patch]>",
-				UsageText:   "",
-				Description: "",
-				ArgsUsage:   "",
+				Name:      "update-version",
+				Aliases:   []string{"uv"},
+				Usage:     "Updated the version number in package.json and files specified by --files flag",
+				ArgsUsage: "[major|minor|patch]",
 				Flags: []cli.Flag{
 					&cli.StringFlag{
 						Name:        "files",
 						Aliases:     []string{"f"},
-						Usage:       "Add a comma seperated list of files you want to change version numbers in.",
+						Usage:       "Add a comma seperated list of files you want to change version numbers in",
 						Destination: &files,
 					},
 				},
 				Action: func(c *cli.Context) (err error) {
 					level := c.Args().First()
+					// Check if level is valid
+					if level != "major" && level != "minor" && level != "patch" {
+						fmt.Println(
+							"Invalid level. Use one of the following: major, minor, patch.",
+						)
+						return
+					}
+
 					updateVersionNumbers(level, files)
 					return
 				},
@@ -284,14 +305,14 @@ func main() {
 				Usage: "Setup needed dirs and stuff for dc-plugged",
 				Action: func(c *cli.Context) (err error) {
 					// Check if ~/plugins exists, if not create it
-					_, err = os.Stat(pluginDir)
+					_, err = os.Stat(pluginsDir)
 					if os.IsNotExist(err) {
-						err = os.Mkdir(pluginDir, 0755)
+						fmt.Println("~/plugins/ does not exist. Creating it.")
+						err = os.Mkdir(pluginsDir, 0755)
 						check(err)
 					}
 
 					fmt.Println("Setup complete.")
-
 					return
 				},
 			},
