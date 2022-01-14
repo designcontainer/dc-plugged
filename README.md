@@ -13,6 +13,11 @@ A CLI tool for making it easier to work with plugins in site repos.
 - `$ cd dc-plugged`
 - `$ go install`
 
+### Updating
+
+- Navigate to the DC-Plugged repo and pull newest changes.
+- Run `$ go install` and you're good to go.
+
 ## Nice to know
 
 The script assumes you have your plugins located at `~/plugins/`.
