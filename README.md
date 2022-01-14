@@ -25,10 +25,10 @@ If your CWD is `~/sites/financepeople/wp-content/plugins/dc-post-grid/`, dc-plug
 
 - Run `$ dc-plugged` to see all commands
 - Create a new branch in plugin repo
-	- `$ dc-plugged nb feat/cool-new-feature`
+	- `$ dc-plugged nb feat/cool-new-feature` | `$ dc-plugged new-branch feat/cool-new-feature`
 - Stage changes
-	- `$ dc-plugged sc`
+	- `$ dc-plugged sc` | `$ dc-plugged stage-changes`
+- Update version numbers in package.json only
+	- `$ dc-plugged uv patch` | `$ dc-plugged update-version patch`
 - Update version numbers in multiple files
 	- `$ dc-plugged uv --files package-lock.json,dc-post-grid.php patch`
-- Update version numbers in package.json only
-	- `$ dc-plugged uv patch`
