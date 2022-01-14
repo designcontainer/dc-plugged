@@ -13,7 +13,13 @@ A CLI tool for making it easier to work with plugins in site repos.
 - `$ cd dc-plugged`
 - `$ go install`
 
-- The script assumes you have your plugins located at `~/plugins/`.
+## Nice to know
+
+The script assumes you have your plugins located at `~/plugins/`.
+
+The script uses you current directory name to find which plugin folder to apply changes to.
+
+If your CWD is `~/sites/financepeople/wp-content/plugins/dc-post-grid/`, dc-plugged will make changes to `~/plugins/dc-post-grid/`.
 
 ## Usage
 
