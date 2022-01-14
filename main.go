@@ -145,7 +145,7 @@ func stageChanges() {
 	fmt.Println("Staged changes. They are ready to be commited in " + getThePluginDir())
 }
 
-func updateVersionNumbers(level string) {
+func updateVersionNumbers(level string, files string) {
 	// Check if level is valid
 	if level != "major" && level != "minor" && level != "patch" {
 		fmt.Println("Invalid level, please use one of the following: major, minor, patch.")
@@ -204,9 +204,35 @@ func updateVersionNumbers(level string) {
 		[]byte(fileString),
 		0644,
 	)
+
+	fileList := strings.Split(files, ",")
+
+	for _, file := range fileList {
+		// Read the file
+		fileBytes, err := os.ReadFile(path.Join(getThePluginDir(), file))
+		check(err)
+
+		fileString := strings.Replace(
+			string(fileBytes),
+			packageJSONMap["version"].(string),
+			strings.Join( // Join them back to a string
+				version,
+				".",
+			),
+			1, // Only replace the first instance
+		)
+
+		os.WriteFile(
+			path.Join(getThePluginDir(), file),
+			[]byte(fileString),
+			0644,
+		)
+	}
 }
 
 func main() {
+	var files string
+
 	app := &cli.App{
 		Name:    "DC-Plugged",
 		Usage:   "Make it easier to work with plugins in site repos",
@@ -245,9 +271,17 @@ func main() {
 				UsageText:   "",
 				Description: "",
 				ArgsUsage:   "",
+				Flags: []cli.Flag{
+					&cli.StringFlag{
+						Name:        "files",
+						Aliases:     []string{"f"},
+						Usage:       "Add a comma seperated list of files you want to change version numbers in.",
+						Destination: &files,
+					},
+				},
 				Action: func(c *cli.Context) (err error) {
 					level := c.Args().First()
-					updateVersionNumbers(level)
+					updateVersionNumbers(level, files)
 					return
 				},
 			},

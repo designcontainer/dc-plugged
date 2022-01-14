@@ -13,9 +13,19 @@ A CLI tool for making it easier to work with plugins in site repos.
 - `$ cd dc-plugged`
 - `$ go install`
 
+- The script assumes you have your plugins located at `~/plugins/`.
+
 ## Usage
 
 - Run `$ dc-plugged` to see all commands
+- Create a new branch in plugin repo
+	- `$ dc-plugged nb feat/cool-new-feature`
+- Stage changes
+	- `$ dc-plugged sc`
+- Update version numbers in multiple files
+	- `$ dc-plugged uv --files package-lock.json,dc-post-grid.php patch`
+- Update version numbers in package.json only
+	- `$ dc-plugged uv patch`
 
 ## Known limitations / bugs
 
