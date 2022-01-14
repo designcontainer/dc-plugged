@@ -153,9 +153,7 @@ func updateVersionNumbers(level string, files string) {
 	}
 
 	// Read the package.json file
-	packageJSONBytes, err := os.ReadFile(
-		path.Join(getThePluginDir(), "package.json"),
-	)
+	packageJSONBytes, err := os.ReadFile("package.json")
 	check(err)
 
 	// Unmarshal the json into a map
@@ -199,17 +197,15 @@ func updateVersionNumbers(level string, files string) {
 	)
 
 	// Save the new version number to the package.json file
-	os.WriteFile(
-		path.Join(getThePluginDir(), "package.json"),
-		[]byte(fileString),
-		0644,
-	)
+	// Write to both the site repo and the plugin repo
+	os.WriteFile("package.json", []byte(fileString), 0644)
+	os.WriteFile(path.Join(getThePluginDir(), "package.json"), []byte(fileString), 0644)
 
 	fileList := strings.Split(files, ",")
 
 	for _, file := range fileList {
 		// Read the file
-		fileBytes, err := os.ReadFile(path.Join(getThePluginDir(), file))
+		fileBytes, err := os.ReadFile(file)
 		check(err)
 
 		fileString := strings.Replace(
@@ -222,11 +218,9 @@ func updateVersionNumbers(level string, files string) {
 			1, // Only replace the first instance
 		)
 
-		os.WriteFile(
-			path.Join(getThePluginDir(), file),
-			[]byte(fileString),
-			0644,
-		)
+		// Write to both the site repo and the plugin repo
+		os.WriteFile(path.Join(file), []byte(fileString), 0644)
+		os.WriteFile(path.Join(getThePluginDir(), file), []byte(fileString), 0644)
 	}
 }
 
