@@ -142,8 +142,15 @@ func stageChanges() {
 	 * from the pluginDir as well.
 	 */
 
-	// Open the repo we are in.
-	repo, err := git.PlainOpen(getCWD())
+	// Open the site repo
+	gitDir := strings.Split(getCWD(), "/")
+	if len(gitDir) <= 0 {
+		fmt.Println("Could not get your CWD.")
+		return
+	}
+	// gitDirString is the top level directory the site repo (Where `.git/` is)
+	gitDirStr := "/" + path.Join(gitDir[:len(gitDir)-3]...) + "/"
+	repo, err := git.PlainOpen(gitDirStr)
 	wt, err := repo.Worktree()
 
 	// Get the status of the repo
@@ -151,12 +158,20 @@ func stageChanges() {
 	str := status.String()
 	stats := strings.Split(str, "\n")
 
-	// Get the deleted files and delete them from the pluginDir
+	// Get the files deleted from the plugin and delete them from the pluginDir
 	for _, file := range stats {
 		if len(file) > 0 {
+			// Check if the file is deleted
 			isDeleted := strings.TrimSpace(file)[0:1] == "D"
-			if isDeleted {
-				fileName := strings.TrimSpace(file)[2:]
+			// Check if the file is in the plugin folder
+			isPluginFile := strings.Contains(
+				file,
+				path.Join("plugins", path.Base(getCWD())),
+			)
+			if isDeleted && isPluginFile {
+				// Get the filename and remove the `D ` in the beginning
+				fileName := path.Base(strings.TrimSpace(file)[2:])
+				// Remove it
 				os.RemoveAll(
 					path.Join(
 						getThePluginDir(),
