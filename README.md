@@ -32,8 +32,3 @@ If your CWD is `~/sites/financepeople/wp-content/plugins/dc-post-grid/`, dc-plug
 	- `$ dc-plugged uv --files package-lock.json,dc-post-grid.php patch`
 - Update version numbers in package.json only
 	- `$ dc-plugged uv patch`
-
-## Known limitations / bugs
-
-- Deleting files in the top level directory is a bit scuffed right now. So always double check files you've deleted in the top level directory of the plugin.
-- Update version numbers currently only updates `package.json`, but I'm planning to an option to specify which files to update it in.
