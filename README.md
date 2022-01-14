@@ -5,6 +5,9 @@ A CLI tool for making it easier to work with plugins in site repos.
 ## Installation
 
 - Here's how to [install go](https://go.dev/doc/install).
+- Add the following lines to your `.zshrc`, `.bashrc` or `.profile`:
+	- `export GOPATH=$HOME/go`
+	- `export PATH=$PATH:$GOROOT/bin:$GOPATH/bin`
 
 - `$ git clone https://github.com/designcontainer/dc-plugged`
 - `$ cd dc-plugged`
