@@ -109,6 +109,17 @@ func stageChanges() {
 	// Heres a list of ignored files and dirs we don't want to mess with.
 	ignoredFiles := []string{".git", ".gitignore", "node_modules", ".env"}
 
+	// Check if the plugin dir exists
+	if _, err := os.Stat(getThePluginDir()); os.IsNotExist(err) {
+		fmt.Printf("%s does not exist.\n", getThePluginDir())
+		fmt.Printf(
+			"Run `$ git clone %s/%[2]s ~/plugins/%[2]s`\n",
+			"https://github.com/designcontainer",
+			path.Base(getCWD()),
+		)
+		return
+	}
+
 	// Delete all files in the plugin repo that are not in the ignored list
 	files, err := os.ReadDir(getThePluginDir())
 	for _, dirEntry := range files {
