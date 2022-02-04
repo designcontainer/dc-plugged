@@ -115,8 +115,7 @@ func stageChanges() {
 		fmt.Printf(
 			"Run `$ git clone %s/%[2]s ~/plugins/%[2]s`\n",
 			"https://github.com/designcontainer",
-			path.Base(getCWD()),
-		)
+			path.Base(getCWD()))
 		return
 	}
 
@@ -141,14 +140,12 @@ func stageChanges() {
 					"cp",
 					"-R", // Recursive flag, so we can copy dirs as well
 					dirEntry.Name(),
-					path.Join(getThePluginDir(), dirEntry.Name()),
-				)
+					path.Join(getThePluginDir(), dirEntry.Name()))
 			} else {
 				cp = exec.Command(
 					"cp",
 					dirEntry.Name(),
-					path.Join(getThePluginDir(), dirEntry.Name()),
-				)
+					path.Join(getThePluginDir(), dirEntry.Name()))
 			}
 
 			// Define outputs
@@ -162,8 +159,7 @@ func stageChanges() {
 
 	fmt.Printf(
 		"Staged changes. They are ready to be commited in %s\n",
-		getThePluginDir(),
-	)
+		getThePluginDir())
 }
 
 // Updates the plugin version number based on input level
@@ -202,8 +198,7 @@ func updateVersionNumbers(level string, files string) {
 	fmt.Printf(
 		"Updated version from %s to %s.\n",
 		packageJSONMap["version"],
-		strings.Join(newVersion, "."),
-	)
+		strings.Join(newVersion, "."))
 
 	// NOTICE:
 	// We str replace the version number instead of stringifying our parsed
@@ -214,16 +209,14 @@ func updateVersionNumbers(level string, files string) {
 		string(packageJSONBytes), // Replace target
 		oldVersion,               // Search for previous version
 		newVersionStr,            // Replace with new version
-		1,                        // Only replace the first instance
-	)
+		1)                        // Only replace the first instance
 
 	// Write to both the site repo and the plugin repo
 	os.WriteFile("package.json", []byte(fileString), 0644)
 	os.WriteFile(
 		path.Join(getThePluginDir(), "package.json"),
 		[]byte(fileString),
-		0644,
-	)
+		0644)
 
 	// Loop trough the extra files and replace the version.
 	fileList := strings.Split(files, ",")
@@ -236,16 +229,14 @@ func updateVersionNumbers(level string, files string) {
 			string(fileBytes), // Replace target
 			oldVersion,        // Search for previous version
 			newVersionStr,     // Replace with new version
-			1,                 // Only replace the first instance
-		)
+			1)                 // Only replace the first instance
 
 		// Write to both the site repo and the plugin repo
 		os.WriteFile(path.Join(file), []byte(fileString), 0644)
 		os.WriteFile(
 			path.Join(getThePluginDir(), file),
 			[]byte(fileString),
-			0644,
-		)
+			0644)
 	}
 }
 
@@ -301,9 +292,7 @@ func main() {
 					level := c.Args().First()
 					// Check if level is valid
 					if level != "major" && level != "minor" && level != "patch" {
-						fmt.Println(
-							"Invalid level. Use one of the following: major, minor, patch.",
-						)
+						fmt.Println("Invalid level. Use one of the following: major, minor, patch.")
 						return
 					}
 
