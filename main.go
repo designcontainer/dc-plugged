@@ -167,6 +167,25 @@ func stageChanges() {
 // It only changes version number in package.json by default.
 // `files` is a comma seperated string of other files to change version in.
 func updateVersionNumbers(level string, files string) {
+	// Make a map of levels to their respective numbers of the version number
+	var table = map[string]int{
+		"major": 0,
+		"minor": 1,
+		"patch": 2,
+	}
+
+	// Check if level is valid
+	var err error = fmt.Errorf("Invalid level. Use one of the following: major, minor, patch.")
+	for key := range table {
+		if key == level {
+			err = nil
+		}
+	}
+	check(err)
+
+	// Get the index of the version number to increment
+	index := table[level]
+
 	// Read the package.json file
 	packageJSONBytes, err := os.ReadFile("package.json")
 	check(err)
@@ -179,14 +198,6 @@ func updateVersionNumbers(level string, files string) {
 	// Increment the version number according to the level
 	newVersion := strings.Split(packageJSONMap["version"].(string), ".")
 	var num int
-
-	// Get the index of the version number to increment
-	var table = map[string]int{
-		"major": 0,
-		"minor": 1,
-		"patch": 2,
-	}
-	index := table[level]
 
 	// Update the version number
 	num, err = strconv.Atoi(newVersion[index])
@@ -290,12 +301,6 @@ func main() {
 				},
 				Action: func(c *cli.Context) (err error) {
 					level := c.Args().First()
-					// Check if level is valid
-					if level != "major" && level != "minor" && level != "patch" {
-						fmt.Println("Invalid level. Use one of the following: major, minor, patch.")
-						return
-					}
-
 					updateVersionNumbers(level, files)
 					return
 				},
