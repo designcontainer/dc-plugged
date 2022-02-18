@@ -162,6 +162,33 @@ func stageChanges() {
 		getThePluginDir())
 }
 
+// Checks out the master branch in the plugin repo as long as the repo is clean
+func checkoutMasterBranch() {
+	// Open the repo so we can make changes to it
+	repo, err := git.PlainOpen(getThePluginDir())
+	check(err)
+
+	// Open the worktree
+	workTree, err := repo.Worktree()
+	check(err)
+
+	// Check if repo is dirty
+	workTreeStatus, err := workTree.Status()
+	if !workTreeStatus.IsClean() {
+		fmt.Printf("%s is dirty.\n", getThePluginDir())
+		fmt.Println("Please commit or stash your changes.")
+		return
+	}
+
+	// Checkout the new branch
+	err = workTree.Checkout(&git.CheckoutOptions{Branch: "refs/heads/master"})
+	check(err)
+
+	if err == nil {
+		fmt.Println("Checked out master branch.")
+	}
+}
+
 // Updates the plugin version number based on input level
 // `level` can be: major, minor or patch
 // It only changes version number in package.json by default.
@@ -302,6 +329,15 @@ func main() {
 				Action: func(c *cli.Context) (err error) {
 					level := c.Args().First()
 					updateVersionNumbers(level, files)
+					return
+				},
+			},
+			{
+				Name:    "checkout-master",
+				Aliases: []string{"cm"},
+				Usage:   "Checkout master branch in plugin repo",
+				Action: func(c *cli.Context) (err error) {
+					checkoutMasterBranch()
 					return
 				},
 			},

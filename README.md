@@ -37,3 +37,5 @@ If your CWD is `~/sites/financepeople/wp-content/plugins/dc-post-grid/`, dc-plug
 	- `$ dc-plugged uv patch` | `$ dc-plugged update-version patch`
 - Update version numbers in multiple files
 	- `$ dc-plugged uv --files package-lock.json,dc-post-grid.php patch`
+- Checkout the master branch in plugin repo
+	- `$ dc-plugged cm` | `$ dc-plugged checkout-master`
